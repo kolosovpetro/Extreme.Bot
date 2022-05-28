@@ -1,30 +1,38 @@
-﻿using Microsoft.Extensions.Configuration;
+using System.Net.Http;
+using Extreme.Bot;
+using Extreme.Bot.Services;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
+using Telegram.Bot;
 
-namespace Extreme.Bot;
+var builder = WebApplication.CreateBuilder(args);
 
-internal class Program
-{
-    public static void Main(string[] args)
-    {
-        CreateHostBuilder(args).Build().Run();
-    }
+var botConfiguration = ConfigurationService.CreateConfiguration();
+builder.Services.AddSingleton(_ => botConfiguration);
 
-    private static IHostBuilder CreateHostBuilder(string[] args) =>
-        Host.CreateDefaultBuilder(args)
-            .ConfigureLogging((hostContext, logging) =>
-            {
-                logging.AddConfiguration(hostContext.Configuration.GetSection("Logging"));
-                logging.AddConsole();
-            })
-            .ConfigureAppConfiguration(x => { x.AddUserSecrets<Program>(); })
-            .ConfigureServices((hostContext, services) =>
-            {
-                services.AddLogging();
-                services.AddSingleton<IChatService, TelegramService>();
-                services.AddBotCommands();
-                services.AddHostedService<Bot>();
-            });
-}
+builder.Services.AddScoped<HandleUpdateService>();
+
+builder.Services
+    .AddControllers()
+    .AddNewtonsoftJson();
+
+builder.Services.AddEndpointsApiExplorer();
+
+var httpClient = new HttpClient();
+
+builder.Services.AddHttpClient<HttpClient>();
+
+builder.Services.AddSingleton<ITelegramBotClient>(_ =>
+    new TelegramBotClient(
+        botConfiguration.BotToken,
+        httpClient,
+        botConfiguration.BaseUrl));
+
+var app = builder.Build();
+app.UseTelegramBotWebhook();
+
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.Run();
