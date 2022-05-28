@@ -1,5 +1,4 @@
 using System.Net.Http;
-using Extreme.Bot;
 using Extreme.Bot.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,18 +17,11 @@ builder.Services
 
 builder.Services.AddEndpointsApiExplorer();
 
-var httpClient = new HttpClient();
-
 builder.Services.AddHttpClient<HttpClient>();
 
-builder.Services.AddSingleton<ITelegramBotClient>(_ =>
-    new TelegramBotClient(
-        botConfiguration.BotToken,
-        httpClient,
-        botConfiguration.BaseUrl));
+builder.Services.AddSingleton<ITelegramBotClient>(_ => new TelegramBotClient(token: botConfiguration.BotToken));
 
 var app = builder.Build();
-app.UseTelegramBotWebhook();
 
 app.UseAuthorization();
 
